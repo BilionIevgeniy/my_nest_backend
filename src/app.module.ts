@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TranslationsModule } from './translations/translations.module';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TranslationsModule } from './translations/translations.module';
       // port: 6379,
     }),
     TranslationsModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

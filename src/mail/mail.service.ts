@@ -1,37 +1,40 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+// import * as nodemailer from 'nodemailer';
 import { SendContactFormDto } from './dto/send-contact-form.dto';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private transporter: nodemailer.Transporter;
-
+  // private transporter: nodemailer.Transporter;
+  private resend: Resend;
   constructor(private configService: ConfigService) {
+    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
+    this.logger.log('✅ Resend client initialized');
     // Initialize Gmail SMTP transport
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // true for port 465, false for other ports
-      connectionTimeout: 10000,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
-      },
-    });
-    this.transporter.verify((error) => {
-      if (error) {
-        this.logger.error('SMTP connection failed:', error.message);
-      } else {
-        this.logger.log('✅ SMTP connection established');
-      }
-    });
+    // this.transporter = nodemailer.createTransport({
+    //   host: 'smtp.gmail.com',
+    //   port: 587,
+    //   secure: false, // true for port 465, false for other ports
+    //   connectionTimeout: 10000,
+    //   auth: {
+    //     user: this.configService.get<string>('SMTP_USER'),
+    //     pass: this.configService.get<string>('SMTP_PASS'),
+    //   },
+    // });
+    // this.transporter.verify((error) => {
+    //   if (error) {
+    //     this.logger.error('SMTP connection failed:', error.message);
+    //   } else {
+    //     this.logger.log('✅ SMTP connection established');
+    //   }
+    // });
   }
 
   async sendContactEmail(dto: SendContactFormDto): Promise<{ success: boolean; message: string }> {
     const { name, email, message } = dto;
-    const receiver = this.configService.get<string>('CONTACT_RECEIVER_EMAIL');
+    const receiver = this.configService.get<string>('CONTACT_RECEIVER_EMAIL')!;
 
     // Build HTML email structure
     const htmlContent = `
@@ -48,13 +51,25 @@ export class MailService {
     try {
       this.logger.log(`Attempting to send email from ${email}...`);
 
-      await this.transporter.sendMail({
-        from: `"Portfolio Contact Form" <${this.configService.get<string>('SMTP_USER')}>`,
+      // await this.transporter.sendMail({
+      //   from: `"Portfolio Contact Form" <${this.configService.get<string>('SMTP_USER')}>`,
+      //   to: receiver,
+      //   subject: `📩 New email from ${name}`,
+      //   replyTo: email,
+      //   html: htmlContent,
+      // });
+      const { error } = await this.resend.emails.send({
+        from: 'Portfolio <onboarding@resend.dev>',
         to: receiver,
         subject: `📩 New email from ${name}`,
         replyTo: email,
         html: htmlContent,
       });
+
+      if (error) {
+        this.logger.error('Resend API error:', error.message);
+        throw new InternalServerErrorException('Failed to send email.');
+      }
 
       this.logger.log(`Email from ${email} successfully delivered.`);
       return { success: true, message: 'Email successfully sent!' };

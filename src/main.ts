@@ -9,6 +9,8 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed HTTP methods
     credentials: true, // Allow cookies, authorization headers, etc. (if needed)
   });
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  const port = process.env.PORT ?? 4200;
+  await app.listen(port, '0.0.0.0');
+  console.info(`Server running on port ${port}`);
 }
 void bootstrap();
